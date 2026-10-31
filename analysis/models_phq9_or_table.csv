@@ -1,0 +1,13 @@
+Outcome,Term,Model 1,Model 2,Model 3,Model 4
+Diabetes (any definition),"PHQ-9, per 1 point",1.04 (1.01-1.06)*,1.07 (1.04-1.10)*,1.05 (1.02-1.08)*,1.04 (1.02-1.07)*
+Diabetes (any definition),"PHQ-9, per 5 points",1.19 (1.05-1.35)*,1.38 (1.21-1.58)*,1.27 (1.12-1.45)*,1.22 (1.08-1.38)*
+Diabetes (any definition),PHQ 5-9 vs PHQ 0-4,1.07 (0.85-1.35) ,1.38 (1.05-1.81)*,1.25 (0.93-1.69) ,1.09 (0.78-1.50) 
+Diabetes (any definition),PHQ 10-14 vs PHQ 0-4,1.50 (0.99-2.29) ,2.31 (1.47-3.63)*,1.90 (1.19-3.03)*,1.85 (1.15-3.00)*
+Diabetes (any definition),PHQ 15-27 vs PHQ 0-4,1.88 (1.09-3.23)*,2.53 (1.53-4.21)*,1.88 (1.13-3.16)*,1.74 (1.08-2.81)*
+Diabetes (any definition),Per PHQ-9 group step (trend),1.21 (1.05-1.39)*,1.42 (1.21-1.65)*,1.28 (1.10-1.50)*,1.24 (1.07-1.43)*
+Hypertension (any definition),"PHQ-9, per 1 point",1.00 (0.99-1.02) ,1.04 (1.03-1.06)*,1.03 (1.02-1.05)*,1.03 (1.01-1.04)*
+Hypertension (any definition),"PHQ-9, per 5 points",1.02 (0.97-1.09) ,1.23 (1.16-1.32)*,1.18 (1.10-1.26)*,1.13 (1.05-1.23)*
+Hypertension (any definition),PHQ 5-9 vs PHQ 0-4,0.97 (0.78-1.20) ,1.32 (1.04-1.68)*,1.23 (0.97-1.57) ,1.13 (0.87-1.47) 
+Hypertension (any definition),PHQ 10-14 vs PHQ 0-4,0.94 (0.72-1.22) ,1.40 (1.06-1.85)*,1.27 (0.96-1.68) ,1.22 (0.90-1.64) 
+Hypertension (any definition),PHQ 15-27 vs PHQ 0-4,1.32 (1.02-1.71)*,1.95 (1.47-2.57)*,1.64 (1.26-2.14)*,1.52 (1.08-2.13)*
+Hypertension (any definition),Per PHQ-9 group step (trend),1.03 (0.96-1.09) ,1.23 (1.14-1.33)*,1.17 (1.08-1.26)*,1.13 (1.04-1.22)*
