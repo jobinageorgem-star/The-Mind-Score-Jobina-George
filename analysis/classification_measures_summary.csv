@@ -1,0 +1,9 @@
+outcome,model,accuracy | Base (no PHQ-9),accuracy | Base + PHQ-9,sensitivity | Base (no PHQ-9),sensitivity | Base + PHQ-9,specificity | Base (no PHQ-9),specificity | Base + PHQ-9,precision | Base (no PHQ-9),precision | Base + PHQ-9,f1 | Base (no PHQ-9),f1 | Base + PHQ-9
+Diabetes,Decision tree,0.673,0.671,0.762,0.761,0.658,0.656,0.276,0.275,0.404,0.403
+Diabetes,Logistic regression,0.719,0.724,0.764,0.764,0.711,0.717,0.31,0.315,0.441,0.446
+Diabetes,Random forest,0.677,0.68,0.826,0.821,0.652,0.656,0.288,0.289,0.427,0.427
+Diabetes,XGBoost,0.719,0.72,0.766,0.764,0.711,0.713,0.312,0.312,0.443,0.443
+Hypertension,Decision tree,0.707,0.705,0.748,0.749,0.669,0.663,0.685,0.682,0.714,0.713
+Hypertension,Logistic regression,0.722,0.724,0.741,0.743,0.703,0.706,0.705,0.708,0.723,0.725
+Hypertension,Random forest,0.714,0.716,0.755,0.756,0.675,0.678,0.691,0.693,0.721,0.723
+Hypertension,XGBoost,0.717,0.716,0.751,0.748,0.684,0.685,0.695,0.696,0.722,0.721
