@@ -1,0 +1,554 @@
+<meta charset="utf-8">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>The Mind Score &ndash; Physical Health Analysis</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: an input sheet on the left, paired horizontal bar charts on the right, one PHQ-9 switch above the charts. */
+:root {
+  --bg: #F1F4F2;
+  --panel: #FFFFFF;
+  --ink: #14201C;
+  --muted: #586761;
+  --line: #D3DBD7;
+  --accent: #0E5C56;
+  --accent-ink: #FFFFFF;
+  --phq: #A8510A;
+  --track: #E4EAE7;
+  --lower: #8A9893;
+  --font: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F1514; --panel: #172120; --ink: #E4EDEA; --muted: #93A59F; --line: #2A3835;
+    --accent: #53BDB2; --accent-ink: #0B1513; --phq: #EC9446; --track: #223130; --lower: #6F837D;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F1514; --panel: #172120; --ink: #E4EDEA; --muted: #93A59F; --line: #2A3835;
+  --accent: #53BDB2; --accent-ink: #0B1513; --phq: #EC9446; --track: #223130; --lower: #6F837D;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.55 var(--font);
+  padding-block: 28px 44px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1120px; margin: 0 auto; }
+.eyebrow { font: 500 12px/1.4 var(--mono); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+h1 { font-size: clamp(1.55rem, 1.2rem + 1.4vw, 2.1rem); line-height: 1.15; font-weight: 600; letter-spacing: -.01em; margin: 0 0 10px; text-wrap: balance; }
+h2 { font-size: 1.1rem; font-weight: 600; margin: 0; }
+h3 { font-size: .8rem; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+.lede { max-width: 66ch; color: var(--muted); margin: 0 0 22px; }
+
+.grid { display: grid; grid-template-columns: minmax(300px, 370px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.stack { display: grid; gap: 18px; min-width: 0; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; min-width: 0; }
+
+/* inputs */
+fieldset { border: 0; padding: 0; margin: 0 0 20px; min-width: 0; }
+fieldset:last-of-type { margin-bottom: 0; }
+legend { padding: 0; font: 600 12px/1.4 var(--mono); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+.field { display: grid; gap: 6px; margin-bottom: 14px; }
+.field > .lab { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-weight: 500; }
+.field .lab output { font: 500 14px var(--mono); color: var(--accent); }
+.hint { font-size: 13px; color: var(--muted); margin: 0; }
+.err { font-size: 13px; color: var(--phq); margin: 0; min-height: 0; }
+input[type="number"], select {
+  width: 100%; font: inherit; color: var(--ink); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
+}
+input[type="number"] { font-family: var(--mono); }
+input[type="range"] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.seg { display: inline-grid; grid-auto-flow: column; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; justify-self: start; }
+.seg label { position: relative; }
+.seg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.seg span { display: block; padding: 7px 18px; cursor: pointer; background: var(--panel); }
+.seg input:checked + span { background: var(--accent); color: var(--accent-ink); font-weight: 500; }
+.seg input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -3px; }
+.reset { font: inherit; font-size: 13px; color: var(--muted); background: none; border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; cursor: pointer; margin-top: 6px; }
+.reset:hover { color: var(--ink); border-color: var(--muted); }
+.reset:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* PHQ-9 switch */
+.switchbar { display: grid; gap: 6px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--bg); }
+.switch { display: flex; align-items: center; gap: 12px; cursor: pointer; font-weight: 600; font-size: 1.05rem; width: fit-content; }
+.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.track { position: relative; flex: none; width: 46px; height: 26px; border-radius: 13px; background: var(--track); border: 1px solid var(--line); transition: background .15s, border-color .15s; }
+.track::after { content: ""; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
+.switch input:checked + .track { background: var(--phq); border-color: var(--phq); }
+.switch input:checked + .track::after { transform: translateX(20px); background: #fff; }
+.switch input:focus-visible + .track { outline: 2px solid var(--accent); outline-offset: 3px; }
+.state { color: var(--muted); margin: 0; min-height: 1.55em; }
+.state b { color: var(--ink); font-weight: 500; }
+
+
+/* person summary */
+.sumgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+@media (max-width: 1040px) { .sumgrid { grid-template-columns: minmax(0, 1fr); } }
+.sum { min-width: 0; display: grid; gap: 10px; align-content: start; }
+.sum h2 { margin: 0; }
+.big { font: 500 44px/1 var(--mono); margin: 0; letter-spacing: -.02em; }
+.big small { font-size: 22px; color: var(--muted); margin-left: 2px; }
+.chip { display: inline-block; width: fit-content; max-width: 100%; border: 1px solid var(--ink); border-radius: 6px; padding: 3px 9px; font-size: 13px; font-weight: 500; margin: 0; }
+.read { margin: 0; max-width: 56ch; }
+.facts { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+.facts li { padding-left: 14px; position: relative; }
+.facts li::before { content: ""; position: absolute; left: 0; top: .62em; width: 6px; height: 1.5px; background: var(--muted); }
+.facts b { color: var(--ink); font-weight: 500; }
+.sum h3 { margin: 6px 0 0; }
+.drv { display: grid; grid-template-columns: minmax(0, 1fr) minmax(120px, 44%); gap: 10px; align-items: center; font-size: 13.5px; padding: 3px 0; }
+.drv .dl { overflow-wrap: anywhere; }
+.dbar { position: relative; height: 12px; }
+.dbar::before { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; border-left: 1px solid var(--muted); }
+.dbar i { position: absolute; top: 1px; bottom: 1px; border-radius: 2px; }
+.dbar i.up { left: 50%; background: var(--accent); }
+.dbar i.down { right: 50%; background: var(--lower); }
+.dbar i.phq { background: var(--phq); }
+.drv-axis { display: grid; grid-template-columns: minmax(0, 1fr) minmax(120px, 44%); gap: 10px; font: 400 11px var(--mono); color: var(--muted); }
+.drv-axis div { display: flex; justify-content: space-between; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.sum-foot { margin: 18px 0 0; font-size: 13px; color: var(--muted); max-width: 90ch; }
+
+/* result cards */
+.cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+@media (max-width: 560px) { .scale .mid { display: none; } }
+.card header { margin-bottom: 10px; }
+.card .def { font-size: 13px; color: var(--muted); margin: 4px 0 0; }
+.row { display: grid; grid-template-columns: 128px minmax(0, 1fr) 56px; gap: 12px; align-items: center; padding: 7px 0; }
+@media (max-width: 480px) { .row, .axis { grid-template-columns: 92px minmax(0, 1fr) 50px; gap: 8px; } }
+.row .name { font-size: 14px; }
+.bar { position: relative; height: 18px; background: var(--track); border-radius: 4px; }
+.fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--accent); border-radius: 4px; }
+.other { position: absolute; top: -3px; bottom: -3px; width: 3px; margin-left: -1px; background: var(--phq); border-radius: 1px; }
+.avg { position: absolute; top: -2px; bottom: -2px; border-left: 1.5px dashed var(--ink); opacity: .5; }
+.val { font: 500 14px var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
+.axis { display: grid; grid-template-columns: 128px minmax(0, 1fr) 56px; gap: 12px; }
+.scale { position: relative; height: 16px; border-top: 1px solid var(--line); margin-top: 2px; }
+.scale span { position: absolute; top: 2px; font: 400 11px var(--mono); color: var(--muted); transform: translateX(-50%); }
+.scale span:first-child { transform: none; }
+.scale span:last-child { transform: translateX(-100%); }
+@media (prefers-reduced-motion: no-preference) {
+  .fill { transition: width .25s ease; }
+  .other { transition: left .25s ease; }
+}
+.delta { margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--line); font-size: 14px; }
+.delta b { font-family: var(--mono); font-weight: 500; color: var(--phq); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); margin: 0; }
+.legend i { display: inline-block; vertical-align: middle; margin-right: 6px; }
+.sw-bar { width: 16px; height: 10px; background: var(--accent); border-radius: 2px; }
+.sw-other { width: 3px; height: 14px; background: var(--phq); border-radius: 1px; }
+.sw-avg { width: 0; height: 14px; border-left: 1.5px dashed var(--ink); opacity: .6; }
+
+/* evidence */
+.table-scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 7px 10px 7px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td.n, th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+thead th { font-weight: 500; color: var(--muted); font-size: 13px; }
+tr.grp th { padding-top: 14px; color: var(--ink); font-weight: 600; border-bottom: 1px solid var(--ink); }
+table.compact { font-size: 13px; }
+table.compact th, table.compact td { padding-right: 8px; }
+.note { max-width: 70ch; margin: 0 0 14px; color: var(--muted); }
+.fine { font-size: 13px; color: var(--muted); display: grid; gap: 8px; margin: 0; }
+.fine p { margin: 0; max-width: 78ch; }
+.fine strong { color: var(--ink); font-weight: 600; }
+</style>
+
+<div class="wrap">
+  <p class="eyebrow">Interactive risk calculator &middot; Analysis of NHANES data, August 2021&ndash;August 2023 &middot; US adults</p>
+  <h1>The Mind Score &ndash; Physical Health Analysis</h1>
+  <p class="lede">A Data Science Approach to Studying the Association Between Depressive Symptoms (PHQ-9) and Diabetes and Hypertension in US Adults, Accounting for Demographic, Socioeconomic and Lifestyle Confounders (NHANES 2021&ndash;2023)</p>
+
+  <div class="grid">
+    <form id="inputs" class="panel" autocomplete="off" onsubmit="return false">
+      <fieldset>
+        <legend>About the person</legend>
+        <div class="field">
+          <label class="lab" for="age">Age, years</label>
+          <input id="age" type="number" inputmode="numeric" min="18" max="90" step="1" value="52">
+          <p class="err" id="err-age" role="alert"></p>
+        </div>
+        <div class="field">
+          <span class="lab" id="sex-lab">Sex</span>
+          <div class="seg" role="radiogroup" aria-labelledby="sex-lab">
+            <label><input type="radio" name="sex" value="1" checked><span>Female</span></label>
+            <label><input type="radio" name="sex" value="0"><span>Male</span></label>
+          </div>
+        </div>
+        <div class="field">
+          <label class="lab" for="race">Race and ethnicity</label>
+          <select id="race">
+            <option value="Mexican American">Mexican American</option>
+            <option value="Other Hispanic">Other Hispanic</option>
+            <option value="NH White" selected>Non-Hispanic White</option>
+            <option value="NH Black">Non-Hispanic Black</option>
+            <option value="NH Asian">Non-Hispanic Asian</option>
+            <option value="Other/multiracial">Other or multiracial</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="lab" for="educ">Education</label>
+          <select id="educ">
+            <option value="1">Less than 9th grade</option>
+            <option value="2">9th to 11th grade</option>
+            <option value="3">High school or GED</option>
+            <option value="4" selected>Some college or associate degree</option>
+            <option value="5">College graduate or above</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="lab" for="pir">Income vs poverty line <output id="pir-o">3.0</output></label>
+          <input id="pir" type="range" min="0" max="5" step="0.1" value="3">
+          <p class="hint">1.0 is the poverty line; 5.0 means five times or more.</p>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Body and habits</legend>
+        <div class="field">
+          <label class="lab" for="bmi">Body mass index (BMI)</label>
+          <input id="bmi" type="number" inputmode="decimal" min="14" max="60" step="0.1" value="29">
+          <p class="err" id="err-bmi" role="alert"></p>
+        </div>
+        <div class="field">
+          <label class="lab" for="sleep">Sleep, hours a night <output id="sleep-o">7.0</output></label>
+          <input id="sleep" type="range" min="3" max="12" step="0.5" value="7">
+        </div>
+        <div class="field">
+          <span class="lab" id="smoke-lab">Ever smoked 100+ cigarettes</span>
+          <div class="seg" role="radiogroup" aria-labelledby="smoke-lab">
+            <label><input type="radio" name="smoke" value="1"><span>Yes</span></label>
+            <label><input type="radio" name="smoke" value="0" checked><span>No</span></label>
+          </div>
+        </div>
+        <div class="field">
+          <label class="lab" for="alcohol">Alcohol in the past year</label>
+          <select id="alcohol">
+            <option value="0">None</option>
+            <option value="1" selected>Up to 3 days a month</option>
+            <option value="2">One or more days a week</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="lab" for="activity">Leisure activity, minutes a week</label>
+          <input id="activity" type="number" inputmode="numeric" min="0" max="2000" step="10" value="150">
+          <p class="hint">Moderate minutes plus vigorous minutes counted twice.</p>
+          <p class="err" id="err-activity" role="alert"></p>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Mood</legend>
+        <div class="field">
+          <label class="lab" for="phq9">PHQ-9 score <output id="phq9-o">6</output></label>
+          <input id="phq9" type="range" min="0" max="27" step="1" value="6">
+          <p class="hint" id="phq-sev">Mild</p>
+        </div>
+      </fieldset>
+      <button type="button" class="reset" id="reset">Reset to the example person</button>
+    </form>
+
+    <div class="stack">
+      <section class="panel switchbar" aria-label="PHQ-9 switch">
+        <label class="switch"><input type="checkbox" id="usePhq" checked><span class="track" aria-hidden="true"></span><span>Include PHQ-9 in the prediction</span></label>
+        <p class="state" id="state" aria-live="polite"></p>
+      </section>
+
+      <section class="panel" id="summary" aria-label="Summary for this person">
+        <h3>Summary for this person</h3>
+        <div class="sumgrid">
+          <div class="sum" id="sum-diabetes"></div>
+          <div class="sum" id="sum-hypertension"></div>
+        </div>
+        <p class="sum-foot">The estimate is the average of the four models and describes how common each condition is among adults with these answers, not who will develop it later. Bars come from the logistic regression and show how far each answer moves the estimate away from an average adult. Race and ethnicity is in the models because the survey shows differences in prevalence; it stands in for social and biological factors and is not a cause.</p>
+      </section>
+
+      <div class="cards">
+        <article class="panel card" id="card-diabetes">
+          <header>
+            <h2>Diabetes</h2>
+            <p class="def">Doctor-diagnosed, on diabetes medication, HbA1c of 6.5% or more, or fasting glucose of 126 mg/dL or more.</p>
+          </header>
+          <div class="rows" id="rows-diabetes"></div>
+          <p class="delta" id="delta-diabetes" aria-live="polite"></p>
+        </article>
+        <article class="panel card" id="card-hypertension">
+          <header>
+            <h2>High blood pressure</h2>
+            <p class="def">Measured blood pressure of 130/80 mmHg or higher. Doctor diagnosis and medication are not yet included.</p>
+          </header>
+          <div class="rows" id="rows-hypertension"></div>
+          <p class="delta" id="delta-hypertension" aria-live="polite"></p>
+        </article>
+      </div>
+      <p class="legend">
+        <span><i class="sw-bar"></i>Prediction with the current switch setting</span>
+        <span><i class="sw-other"></i>Prediction with the switch the other way</span>
+        <span><i class="sw-avg"></i>Average US adult</span>
+      </p>
+
+      <section class="panel">
+        <h3>Does PHQ-9 improve prediction?</h3>
+        <p class="note">Cross-validated, survey-weighted AUC (5 folds repeated 3 times). An AUC of 0.5 is a coin flip and 1.0 is perfect ranking. A change near zero means PHQ-9 adds almost nothing once age, BMI and the other answers are known. For one person, PHQ-9 can still shift the estimate (see the change shown on each card above), yet it barely improves how well the models rank people.</p>
+        <div class="table-scroll"><table id="cv"></table></div>
+      </section>
+
+      <section class="panel" id="cm-panel">
+        <h3>Precision, recall and other classification measures</h3>
+        <p class="note">Each cell shows the value <b>without PHQ-9 / with PHQ-9</b>, from the same cross-validation, survey-weighted. A person is counted as a predicted case when the predicted risk is at or above the average risk of the training group (the weighted prevalence). <b>Recall</b> (also called sensitivity) is the share of people who have the condition that the model finds. <b>Precision</b> is the share of flagged people who truly have it. <b>Specificity</b> is the share of people without the condition correctly left unflagged. <b>F1</b> combines precision and recall. Because diabetes and high blood pressure are not the majority outcome, accuracy alone can look good even for a weak model, so read it together with recall and precision.</p>
+        <div class="table-scroll"><table id="cm" class="compact"></table></div>
+      </section>
+
+      <section class="panel">
+        <h3>What the models adjust for</h3>
+        <p class="note">These ten answers are included in every model, with and without PHQ-9, so any effect of PHQ-9 is judged after they are taken into account.</p>
+        <div class="fine">
+          <p><strong>Demographic.</strong> Age, sex, race and ethnicity.</p>
+          <p><strong>Socioeconomic.</strong> Education, income compared with the poverty line.</p>
+          <p><strong>Lifestyle.</strong> Physical activity, smoking, alcohol use, sleep hours.</p>
+          <p><strong>Body.</strong> Body mass index (BMI).</p>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h3>About this tool</h3>
+        <div class="fine">
+          <p><strong>Research demonstration, not medical advice.</strong> It cannot diagnose anything or guide treatment. Talk to a clinician about your own health.</p>
+          <p><strong>Data.</strong> <span id="data-n"></span> adults aged 18 and over with a PHQ-9 score, from the US National Health and Nutrition Examination Survey. Models were fitted with survey weights, so they describe the US adult population.</p>
+          <p><strong>Models.</strong> Logistic regression, a shallow decision tree, a random forest and gradient boosting, all fitted with scikit-learn and run in this page.</p>
+          <p><strong>Read with care.</strong> The data are a single snapshot, so associations are not causes. The percentages are what the models estimate for people with these answers, not a personal probability.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+const BUNDLE = /*MODELS_JSON*/;
+/*PREDICT_JS*/
+
+var MODEL_ORDER = ["lr", "dt", "rf", "gb"];
+var MODEL_LABEL = { lr: "Logistic regression", dt: "Decision tree", rf: "Random forest", gb: "Gradient boosting" };
+var OUTCOMES = ["diabetes", "hypertension"];
+var OUTCOME_LABEL = { diabetes: "Diabetes", hypertension: "High blood pressure" };
+var PHQ_LEVEL = ["Minimal", "Mild", "Moderate", "Moderately severe", "Severe"];
+var LIMITS = { age: [18, 90], bmi: [14, 60], activity: [0, 2000] };
+var DEFAULTS = { age: 52, sex: "1", race: "NH White", educ: "4", pir: 3, bmi: 29, sleep: 7, smoke: "0", alcohol: "1", activity: 150, phq9: 6, usePhq: true };
+
+function $(id) { return document.getElementById(id); }
+function pct(p) { return (p * 100).toFixed(1) + "%"; }
+function signed(x, d) { var s = Math.abs(x).toFixed(d); if (parseFloat(s) === 0) return s; return (x > 0 ? "+" : "-") + s; }
+function phqLevel(s) { return s < 5 ? 0 : s < 10 ? 1 : s < 15 ? 2 : s < 20 ? 3 : 4; }
+
+function buildRows() {
+  OUTCOMES.forEach(function (o) {
+    var html = MODEL_ORDER.map(function (m) {
+      return '<div class="row" data-model="' + m + '"><span class="name">' + MODEL_LABEL[m] + '</span>' +
+        '<div class="bar"><div class="fill"></div><div class="avg"></div><div class="other"></div></div>' +
+        '<span class="val"></span></div>';
+    }).join("");
+    html += '<div class="axis"><span></span><div class="scale">' +
+      [0, 25, 50, 75, 100].map(function (t) { return '<span' + (t === 25 || t === 75 ? ' class="mid"' : '') + ' style="left:' + t + '%">' + t + '%</span>'; }).join("") +
+      '</div><span></span></div>';
+    $("rows-" + o).innerHTML = html;
+    var avg = BUNDLE.outcomes[o].prevalence * 100;
+    $("rows-" + o).querySelectorAll(".avg").forEach(function (el) { el.style.left = avg + "%"; });
+  });
+}
+
+function numeric(id) {
+  var el = $(id), lim = LIMITS[id], v = parseFloat(el.value), err = $("err-" + id);
+  if (isNaN(v) || v < lim[0] || v > lim[1]) {
+    err.textContent = "Enter a number from " + lim[0] + " to " + lim[1] + ".";
+    el.setAttribute("aria-invalid", "true");
+    return null;
+  }
+  err.textContent = "";
+  el.removeAttribute("aria-invalid");
+  return v;
+}
+
+function readInputs() {
+  var age = numeric("age"), bmi = numeric("bmi"), activity = numeric("activity");
+  if (age === null || bmi === null || activity === null) return null;
+  return {
+    age: age, bmi: bmi, activity: activity,
+    female: parseFloat(document.querySelector('input[name="sex"]:checked').value),
+    race: $("race").value,
+    educ: parseFloat($("educ").value),
+    pir: parseFloat($("pir").value),
+    sleep: parseFloat($("sleep").value),
+    smoked: parseFloat(document.querySelector('input[name="smoke"]:checked').value),
+    alcohol: parseFloat($("alcohol").value),
+    phq9: parseFloat($("phq9").value)
+  };
+}
+
+function render() {
+  $("pir-o").textContent = parseFloat($("pir").value).toFixed(1);
+  $("sleep-o").textContent = parseFloat($("sleep").value).toFixed(1);
+  var score = parseFloat($("phq9").value);
+  $("phq9-o").textContent = score;
+  $("phq-sev").textContent = PHQ_LEVEL[phqLevel(score)] + " (" + ["0\u20134", "5\u20139", "10\u201314", "15\u201319", "20\u201327"][phqLevel(score)] + ")";
+
+  var usePhq = $("usePhq").checked;
+  $("state").innerHTML = usePhq
+    ? "Predictions use all answers, including a PHQ-9 score of <b>" + score + "</b>."
+    : "PHQ-9 is ignored. Predictions use the other answers only.";
+
+  var v = readInputs();
+  if (!v) return;
+  OUTCOMES.forEach(function (o) {
+    var cur = predictAll(BUNDLE, o, usePhq, v), alt = predictAll(BUNDLE, o, !usePhq, v);
+    var diffs = [];
+    MODEL_ORDER.forEach(function (m) {
+      var row = $("rows-" + o).querySelector('[data-model="' + m + '"]');
+      row.querySelector(".fill").style.width = (cur[m] * 100) + "%";
+      row.querySelector(".other").style.left = (alt[m] * 100) + "%";
+      row.querySelector(".val").textContent = pct(cur[m]);
+      var withP = usePhq ? cur[m] : alt[m], without = usePhq ? alt[m] : cur[m];
+      row.querySelector(".bar").setAttribute("title", "Without PHQ-9: " + pct(without) + ". With PHQ-9: " + pct(withP) + ".");
+      diffs.push((withP - without) * 100);
+    });
+    var mean = diffs.reduce(function (a, b) { return a + b; }, 0) / diffs.length;
+    renderSummary(o, usePhq, v, cur, mean);
+    $("delta-" + o).innerHTML = "Switching PHQ-9 on moves the prediction by <b>" + signed(mean, 1) +
+      " percentage points</b> on average (from " + signed(Math.min.apply(null, diffs), 1) + " to " + signed(Math.max.apply(null, diffs), 1) +
+      " across the four models).";
+  });
+}
+
+
+var EDUC_SHORT = { 1: "Less than 9th grade", 2: "9th to 11th grade", 3: "High school or GED", 4: "Some college", 5: "College graduate or above" };
+var ALC_SHORT = { 0: "No alcohol in past year", 1: "Light alcohol use", 2: "Weekly alcohol use" };
+var CONDITION = { diabetes: "have diabetes", hypertension: "have blood pressure of 130/80 or higher" };
+
+function factorText(key, v) {
+  switch (key) {
+    case "age": return "Age " + v.age;
+    case "female": return v.female ? "Female" : "Male";
+    case "race": return "Race and ethnicity";
+    case "income_poverty_ratio": return "Income " + v.pir.toFixed(1) + "\u00d7 poverty line";
+    case "education (1-5)": return EDUC_SHORT[v.educ];
+    case "ever_smoked": return v.smoked ? "Smoked 100+ cigarettes" : "Under 100 cigarettes smoked";
+    case "alcohol (0-2)": return ALC_SHORT[v.alcohol];
+    case "leisure_activity_min_wk": return "Activity " + v.activity + " min a week";
+    case "sleep_hours": return "Sleep " + v.sleep.toFixed(1) + " hours";
+    case "bmi": return "BMI " + v.bmi.toFixed(1);
+    case "phq9": return "PHQ-9 score " + v.phq9;
+  }
+  return key;
+}
+
+function band(r) { return r < 0.7 ? "Below average" : r < 1.3 ? "Near average" : r < 2 ? "Above average" : "Well above average"; }
+function reliability(auc) { return auc >= 0.8 ? "good" : auc >= 0.7 ? "fair" : "limited"; }
+
+function renderSummary(o, usePhq, v, cur, shift) {
+  var vals = MODEL_ORDER.map(function (m) { return cur[m]; });
+  var mean = vals.reduce(function (a, b) { return a + b; }, 0) / vals.length;
+  var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+  var prev = BUNDLE.outcomes[o].prevalence, ratio = mean / prev;
+  var spread = (hi - lo) * 100;
+  var agree = spread <= 3 ? "The four models <b>agree closely</b>" : (spread <= 8 && (hi - lo) / mean <= 0.5) ? "The four models <b>differ modestly</b>" : "The four models <b>vary widely</b>, so treat this estimate as uncertain";
+  var cv = BUNDLE.outcomes[o].cv, key = usePhq ? "phq" : "base";
+  var auc = MODEL_ORDER.reduce(function (a, m) { return a + cv[m][key]; }, 0) / MODEL_ORDER.length;
+
+  var contrib = lrContributions(BUNDLE, o, usePhq, v);
+  var keys = Object.keys(contrib).sort(function (a, b) { return Math.abs(contrib[b]) - Math.abs(contrib[a]); });
+  var shown = keys.slice(0, 5);
+  if (usePhq && shown.indexOf("phq9") < 0) shown.push("phq9");
+  shown.sort(function (a, b) { return contrib[b] - contrib[a]; });
+  var maxAbs = Math.max(0.3, Math.max.apply(null, shown.map(function (k) { return Math.abs(contrib[k]); })));
+  var rows = shown.map(function (k) {
+    var c = contrib[k], w = Math.abs(c) / maxAbs * 50;
+    var cls = (c >= 0 ? "up" : "down") + (k === "phq9" ? " phq" : "");
+    var tip = "Odds \u00d7" + Math.exp(c).toFixed(2) + " compared with an average adult (logistic regression)";
+    return '<div class="drv" title="' + tip + '"><span class="dl">' + factorText(k, v) + '</span>' +
+      '<div class="dbar"><i class="' + cls + '" style="width:' + w.toFixed(1) + '%"></i><span class="sr">' + (c >= 0 ? "raises" : "lowers") + ' the estimate</span></div></div>';
+  }).join("");
+
+  var shiftTxt = usePhq
+    ? "PHQ-9 moves this estimate by <b>" + signed(shift, 1) + " percentage points</b> on average"
+    : "PHQ-9 is switched off";
+  $("sum-" + o).innerHTML =
+    '<h2>' + OUTCOME_LABEL[o] + '</h2>' +
+    '<p class="big">' + Math.round(mean * 100) + '<small>%</small></p>' +
+    '<p class="chip">' + band(ratio) + ' \u00b7 ' + ratio.toFixed(1) + '\u00d7 the average US adult (' + pct(prev) + ')</p>' +
+    '<p class="read">About ' + Math.round(mean * 100) + ' in 100 adults with these answers are estimated to ' + CONDITION[o] + '.</p>' +
+    '<ul class="facts"><li>' + agree + ': ' + pct(lo) + ' to ' + pct(hi) + '.</li>' +
+    '<li>Accuracy is <b>' + reliability(auc) + '</b> (AUC ' + auc.toFixed(2) + '): useful for ranking groups, not for pinpointing one person.</li>' +
+    '<li>' + shiftTxt + '.</li>' + screenTxt(o, key) + '</ul>' +
+    '<h3>What moves this estimate</h3>' + rows +
+    '<div class="drv-axis"><span></span><div><span>Lowers</span><span>Raises</span></div></div>';
+}
+
+function screenTxt(o, key) {
+  var cv = BUNDLE.outcomes[o].cv;
+  if (!cv[MODEL_ORDER[0]].cm) return "";
+  var n = MODEL_ORDER.length;
+  var sens = MODEL_ORDER.reduce(function (a, m) { return a + cv[m].cm[key].sens; }, 0) / n;
+  var prec = MODEL_ORDER.reduce(function (a, m) { return a + cv[m].cm[key].prec; }, 0) / n;
+  return '<li>Screening check (average of the four models): recall is <b>' + Math.round(sens * 100) + '%</b> (people with the condition who are found) and precision is <b>' + Math.round(prec * 100) + '%</b> (flagged people who truly have it).</li>';
+}
+
+function buildCmTable() {
+  var panel = $("cm-panel");
+  if (!BUNDLE.outcomes.diabetes.cv[MODEL_ORDER[0]].cm) { panel.style.display = "none"; return; }
+  var cols = [["acc", "Accuracy"], ["sens", "Recall"], ["spec", "Specificity"], ["prec", "Precision"], ["f1", "F1"]];
+  var html = '<thead><tr><th>Model</th>' + cols.map(function (c) { return '<th class="n">' + c[1] + '</th>'; }).join("") + '</tr></thead><tbody>';
+  OUTCOMES.forEach(function (o) {
+    html += '<tr class="grp"><th colspan="' + (cols.length + 1) + '">' + OUTCOME_LABEL[o] + '</th></tr>';
+    MODEL_ORDER.forEach(function (m) {
+      var c = BUNDLE.outcomes[o].cv[m].cm;
+      html += '<tr><td>' + MODEL_LABEL[m] + '</td>' + cols.map(function (k) {
+        return '<td class="n">' + c.base[k[0]].toFixed(2) + ' / ' + c.phq[k[0]].toFixed(2) + '</td>';
+      }).join("") + '</tr>';
+    });
+  });
+  $("cm").innerHTML = html + "</tbody>";
+}
+
+function buildTable() {
+  var html = '<thead><tr><th>Model</th><th class="n">Without PHQ-9</th><th class="n">With PHQ-9</th><th class="n">Change (95% CI)</th></tr></thead><tbody>';
+  OUTCOMES.forEach(function (o) {
+    html += '<tr class="grp"><th colspan="4">' + OUTCOME_LABEL[o] + '</th></tr>';
+    MODEL_ORDER.forEach(function (m) {
+      var c = BUNDLE.outcomes[o].cv[m];
+      html += '<tr><td>' + MODEL_LABEL[m] + '</td><td class="n">' + c.base.toFixed(3) + '</td><td class="n">' + c.phq.toFixed(3) +
+        '</td><td class="n">' + signed(c.delta, 3) + ' (' + signed(c.lo, 3) + ', ' + signed(c.hi, 3) + ')</td></tr>';
+    });
+  });
+  $("cv").innerHTML = html + "</tbody>";
+  $("data-n").textContent = BUNDLE.outcomes.diabetes.n.toLocaleString("en-US");
+}
+
+function reset() {
+  $("age").value = DEFAULTS.age; $("bmi").value = DEFAULTS.bmi; $("activity").value = DEFAULTS.activity;
+  $("race").value = DEFAULTS.race; $("educ").value = DEFAULTS.educ; $("alcohol").value = DEFAULTS.alcohol;
+  $("pir").value = DEFAULTS.pir; $("sleep").value = DEFAULTS.sleep; $("phq9").value = DEFAULTS.phq9;
+  document.querySelector('input[name="sex"][value="' + DEFAULTS.sex + '"]').checked = true;
+  document.querySelector('input[name="smoke"][value="' + DEFAULTS.smoke + '"]').checked = true;
+  $("usePhq").checked = DEFAULTS.usePhq;
+  render();
+}
+
+buildRows();
+buildTable();
+buildCmTable();
+$("inputs").addEventListener("input", render);
+$("inputs").addEventListener("change", render);
+$("usePhq").addEventListener("change", render);
+$("reset").addEventListener("click", reset);
+render();
+</script>
